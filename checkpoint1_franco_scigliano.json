@@ -1,0 +1,178 @@
+{
+  "name": "Checkpoint 1 - Agente de Cobranzas (Tools Agent)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5bb51818-6390-4c8c-951c-d6d7079f16d8",
+      "name": "Chat · Consulta del usuario",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "a1000000-0000-4000-8000-0000000000aa"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "# ROL\nSos el Asistente de Cobranzas de Geacom, una distribuidora de vinos. Respondés consultas internas sobre el estado de las cuentas por cobrar de cada vendedor.\n\n# ÁMBITO\n- Trabajás únicamente con los datos de informes de cobranzas que están en la base de Notion (herramienta \"consultar_informes_cobranzas\").\n- Tu interlocutor es el equipo administrativo de Geacom.\n\n# OBJETIVO\n- Responder cuánto tiene pendiente de cobro un vendedor, cuántos clientes están vencidos y qué informes ya fueron enviados.\n- Si te piden un resumen, entregá: vendedor, total pendiente, cantidad de clientes vencidos y estado del informe.\n\n# REGLAS\n1. Si la consulta menciona un vendedor, un estado de informe o pide números de cobranzas, SIEMPRE consultá la herramienta antes de responder.\n2. Nunca inventes importes, nombres ni fechas. Si la herramienta no devuelve datos, decilo claramente.\n3. Respondé en español rioplatense, tono profesional y directo, con un lenguaje neutro y sin giros inclusivos.\n4. Máximo 8 pasos de razonamiento por consulta; si no alcanzás una respuesta, explicá qué falta.\n\n# LO QUE NO TENÉS PERMITIDO\n- No enviar mails a vendedores ni a clientes.\n- No modificar, borrar ni crear registros.\n- No dar consejos financieros, legales ni impositivos.\n- No responder temas ajenos a cobranzas.\n\n# ESCALAMIENTO\nSi el pedido está fuera de tu ámbito o los datos son contradictorios, respondé: \"Esto requiere revisión de un administrador\" y detallá el motivo.",
+          "maxIterations": 8,
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "80cd550f-a55c-4837-a4ff-8c71ff44a76f",
+      "name": "AI Agent · Asistente de Cobranzas",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        304,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "afc9850a-c540-4abf-83d9-0a71a4227e32",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        240
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "gJotaZYqU6keCIPj",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consulta la base de datos de Notion \"Informes\" de cobranzas de Geacom. Cada registro representa el informe semanal de cuentas por cobrar de un vendedor, con su estado (por ejemplo Pendiente de aprobación, Aprobado, Enviado), el total pendiente de cobro y la cantidad de clientes vencidos.\nUSALA de forma autónoma cada vez que el usuario: (1) pregunte cuánto debe cobrar o tiene pendiente un vendedor; (2) pida saber qué informes fueron enviados, aprobados o están pendientes; (3) pida un resumen o ranking de cobranzas por vendedor; (4) mencione clientes vencidos o deuda.\nNO la uses para saludos, preguntas generales sobre vinos ni consultas que no tengan relación con cobranzas.\nDevuelve una lista de páginas con sus propiedades; filtrá mentalmente por el vendedor consultado y nunca inventes datos que no aparezcan en el resultado.",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "4fc7f021-1f7b-830b-aa24-817c95f2d92b",
+          "mode": "list",
+          "cachedResultName": "4_Informes Semanales",
+          "cachedResultUrl": "https://app.notion.com/p/4fc7f0211f7b830baa24817c95f2d92b"
+        },
+        "options": {}
+      },
+      "id": "f0cf288f-27ff-454d-b383-f034d649555c",
+      "name": "consultar_informes_cobranzas",
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        240
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "Jbnuc1wrADCvHdG5",
+          "name": "Notion Cobranzas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "francoagustinscigliano@gmail.com",
+        "subject": "=✅ Tarea completada · Agente de Cobranzas",
+        "message": "=<h3>Log de auditoría · Asistente de Cobranzas</h3>\n<p><b>Tarea completada.</b></p>\n<p><b>Consulta del usuario:</b> {{ $('Chat · Consulta del usuario').item.json.chatInput }}</p>\n<p><b>Respuesta del agente:</b> {{ $json.output }}</p>\n<p><b>Pasos de razonamiento y herramientas usadas (Execution Log):</b></p>\n<pre>{{ JSON.stringify($json.intermediateSteps, null, 2) }}</pre>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a626b8c7-664e-4212-b4c7-717486f1476d",
+      "name": "Gmail · Log de auditoría",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        0
+      ],
+      "webhookId": "dad3c7fa-a310-448b-b450-4dba5a54b3fa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GkpIxvYYuN3lXTsB",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat · Consulta del usuario": {
+      "main": [
+        [
+          {
+            "node": "AI Agent · Asistente de Cobranzas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent · Asistente de Cobranzas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_informes_cobranzas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent · Asistente de Cobranzas",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent · Asistente de Cobranzas": {
+      "main": [
+        [
+          {
+            "node": "Gmail · Log de auditoría",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0cbb65e5-64ed-4f28-b323-aaf67b42da51",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3b552268f290b19371a56571e52a3aadc2326cbc2894b7bd0e8021c52b69a2e4"
+  },
+  "nodeGroups": [],
+  "id": "Lcp5B2UsKgz42M49",
+  "tags": []
+}
